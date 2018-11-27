@@ -161,13 +161,31 @@ class MPClass(FeatureSelector):
 
     def select(self, Xtrain, ytrain):
         """ select subfeatures using the traindata """
-        I = np.asarray([])
+        I = np.asarray([],dtype=np.int)
         epsilon = self.params['MP_eps']
+        all_feat = np.asarray(list(range(Xtrain.shape[1])),dtype=np.int)
+        nclass = len(np.unique(ytrain))
+        prev_acc = -1<<26
 
-        model = Sequential()
-        model.add(Dense(nclass, input_dim=Xtrain.shape[1], activation='softmax', kernel_regularizer=regularizers.l1(self.params['L1_regwgt'])))
-        model.compile(optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy'])
-        history = model.fit(Xtrain, ytrain, batch_size=self.params['nbatch'], nb_epoch=20,verbose=0)
+        (trainx,trainy),(validx,validy) = utils.split_data(Xtrain,ytrain)
+        trainy = np_utils.to_categorical(trainy, nclass)
+        validy = np_utils.to_categorical(validy, nclass)
+        for i in range(Xtrain.shape[1]):
+            cur_set = [a for a in all_feat if a not in I]
+            acc = np.zeros_like(cur_set,dtype=np.float32)
+            print('Currently selecting the %d-th feature with accuracy so far %f'%(I.shape[0],prev_acc))
+            for j,idx in enumerate(cur_set):
+                I_idx = np.append(I,idx)
+                model = Sequential()
+                model.add(Dense(nclass, input_dim=I_idx.shape[0], activation='softmax'))
+                model.compile(optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy'])
+                history = model.fit(trainx[:,I_idx], trainy, batch_size=32, nb_epoch=20,verbose=0, validation_data=(validx[:,I_idx],validy))
+                acc[j] = max(history.history['val_acc'])
+            new_feat = np.argmax(acc)
+            I = np.append(I,cur_set[new_feat])
+            if (epsilon and abs(acc[new_feat] - prev_acc) < epsilon) or I.shape[0] == self.params['nselected']:
+                break;
+            prev_acc = acc[new_feat]
 
-        self.subfeat = range(Xtrain.shape[1])
+        self.subfeat = I
 
