@@ -15,6 +15,9 @@ import numpy as np
 import argparse
 import os
 import matplotlib.pyplot as plt
+import pdb
+from sklearn.metrics import confusion_matrix
+from utils import *
 
 parser = argparse.ArgumentParser(description="cifar VGG")
 parser.add_argument("--mode", type=str, default="train", help="train, test, extract")
@@ -267,6 +270,23 @@ def main():
         model = cifarvgg(train=False)
         predicted_x = model.predict(x_test)
         acc = np.argmax(predicted_x,1)==np.argmax(y_test,1)
+        test_y = y_test.argmax(1)
+        predicted_x = predicted_x.argmax(1)
+        cm = confusion_matrix(test_y,predicted_x)
+        print(cm)
+        classes = ['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+        plot_cm(cm,classes)
+        nclass = 10
+        print("label    precision    recall")
+        for label in range(nclass):
+            print("%5d, %9.3f, %9.3f"%(label,precision(label, cm),recall(label, cm)))
+
+        print("precision total:", precision_macro_average(cm))
+        print("recall total:", recall_macro_average(cm))
+        print("Accuracy:", ((sum((test_y==predicted_x))*1.)/test_y.shape[0])*100)
+        print('Done')
+
+
         acc = sum(acc)/len(acc)
         print("the validation accuracy is: ",acc)
     else:# extract features

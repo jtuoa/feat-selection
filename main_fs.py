@@ -1,20 +1,109 @@
 import numpy as np
 import argparse
 import os
+import algorithms as algs
+from sklearn.model_selection import KFold
+from sklearn.metrics import confusion_matrix
+from utils import *
 import pdb
+
+np.random.seed(42) #set seed for reproducibility
 
 parser = argparse.ArgumentParser(description="Feature selection main")
 parser.add_argument("--path", type=str, default="", help="path with train_feat.npy and test_feat.npy")
 parser.add_argument("--fs", type=str, default="", help="feature selection method")
 args = parser.parse_args()
+nfeat = None #total number of features
 
-def load_data(filename):
-    path = args.path
-    data = np.load(os.path.join(path,filename)).item()
-    return (data['data'],data['labels'])
+def hyper_selection(x,y):
+    ntrial = 50
+    K = 3
+    paramCoarse = {
+    '''
+    'MP' : (algs.MPClass(), {
+                            'MP_eps': np.random.uniform(low=1e-5, high=1, size=(ntrial,))
+                            }),
+    'Fisher' : (algs.FisherClass(), {
+                                    'Fisher_thresh': np.random.uniform(low=1e-5, high=2e5, size=(ntrial,))
+                                    }),
+    '''
+    'L1' : (algs.L1Class(), {
+                            'L1_thresh': np.random.uniform(low=1e-5, high=0.1, size=(ntrial,)),
+                            'L1_regwgt': np.random.uniform(low=1e-5, high=1, size=(ntrial,))
+                            })
+    }
+    accuracies = {}
+    for learnername in paramCoarse:
+        accuracies[learnername] = np.zeros((ntrial,K))
+
+    kf = KFold(n_splits=K)
+    for k,item in paramCoarse.items():
+        print('Selecting values for algorithm %s ..'%k)
+        algorithm = item[0]
+        params = item[1]
+        for i in range(ntrial):
+            cur_param = {}
+            for p,values in params.items():
+                cur_param[p] = values[i]
+
+            for split, (train_index, test_index) in enumerate(kf.split(x)):
+                algorithm.reset(cur_param)
+                print('%s Running with parameters %s ..'%(''*10,algorithm.getparams()))
+
+                trainx, trainy = x[train_index,...], y[train_index]
+                testx, testy = x[test_index,...], y[test_index]
+                algorithm.select(trainx,trainy)
+                algorithm.train(trainx,trainy,testx,testy)
+                ypredict = algorithm.predict(testx)
+                cur_accuracy = float(sum(ypredict==testy))/testy.shape[0]
+                accuracies[k][i,split] = cur_accuracy
+
+    print(accuracies)
+
+    #TODO k-fold & random search 100 trials lr(classification),nselected (fs) ,batch size (classification)
+
+def std_hist(train_x):
+    plt.hist(train_x.std(0))
+    plt.title('Histogram of number of features in a std bin')
+    plt.xlabel("Standard deviation")
+    plt.ylabel("N features")
+    plt.savefig('hist.png')
+    plt.show()
+    return
 
 def main():
-    train_x,train_y = load_data('train_feat.npy')
-    test_x,test_y = load_data('test_feat.npy')
+    train_x,train_y = load_data(os.path.join(args.path,'train_feat.npy'))
+    test_x,test_y = load_data(os.path.join(args.path,'test_feat.npy'))
+    #TODO read from numpy basaed on dataset
+    classes = ['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+    global nfeat
+    nfeat = test_x.shape[1]
+    nclass = np.unique(test_y).shape[0]
+    (trainx,trainy),(validx,validy) = split_data(train_x,train_y)
+
+    #TODO hype selection
+    hyper_selection(train_x,train_y)
+    '''
+    #TODO algorithms file --> Done
+    classalgs = {'Fisher':algs.FisherClass()
+            }
+    classalgs['Fisher'].select(train_x,train_y)
+    classalgs['Fisher'].train(trainx,trainy,validx,validy)
+    prediction = classalgs['Fisher'].predict(test_x)
+
+    #TODO Evaluation metric confusion
+    cm = confusion_matrix(test_y,prediction)
+    print(cm)
+    plot_cm(cm,classes)
+    print("label    precision    recall")
+    for label in range(nclass):
+        print("%5d, %9.3f, %9.3f"%(label,precision(label, cm),recall(label, cm)))
+
+    print("precision total:", precision_macro_average(cm))
+    print("recall total:", recall_macro_average(cm))
+    print("Accuracy:", ((sum((test_y==prediction))*1.)/test_y.shape[0])*100)
+    '''
+    print('Done')
 
 main()
+
