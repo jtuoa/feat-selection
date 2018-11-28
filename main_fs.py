@@ -25,13 +25,16 @@ def gen_kf(kf_dict):
 def hyper_selection(x,y, kf_dictSelect):
     ntrial = 10
     K = 5
-    paramCoarse = {
+    '''
     'MP' : (algs.MPClass(), {
                             'MP_eps': np.random.uniform(low=1e-5, high=1, size=(ntrial,))
                             }),
     'Fisher' : (algs.FisherClass(), {
                                     'Fisher_thresh': np.random.uniform(low=1e-5, high=2e5, size=(ntrial,))
                                     }),
+    '''
+
+    paramCoarse = {
     'L1' : (algs.L1Class(), {
                             'L1_thresh': np.random.uniform(low=1e-5, high=0.1, size=(ntrial,)),
                             'L1_regwgt': np.random.uniform(low=1e-5, high=1, size=(ntrial,))
@@ -39,7 +42,7 @@ def hyper_selection(x,y, kf_dictSelect):
     }
     accuracies = {}
     for learnername in paramCoarse:
-        accuracies[learnername] = np.zeros((ntrial,K))
+        accuracies[learnername] = np.zeros((ntrial,K,2),dtype = np.float32)
 
     kf = KFold(n_splits=K)
 
@@ -82,8 +85,9 @@ def hyper_selection(x,y, kf_dictSelect):
                 algorithm.train(trainx,trainy,testx,testy)
                 ypredict = algorithm.predict(testx)
                 cur_accuracy = float(sum(ypredict==testy))/testy.shape[0]
-                subfeat = (algorithm.subfeat).shape[0]
-                accuracies[k][i,split] = (cur_accuracy,subfeat)
+                subfeat = algorithm.subfeat.shape[0]
+                accuracies[k][i,split][0] = cur_accuracy
+                accuracies[k][i,split][1] = subfeat
 
     print(accuracies)
     outfile = open('kfold_acc', 'wb')
