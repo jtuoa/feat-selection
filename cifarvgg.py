@@ -131,11 +131,11 @@ class cifarvgg:
         model.add(MaxPooling2D(pool_size=(2, 2)))
 
         model.add(Flatten())
-        model.add(Dense(4096,name='fc1'))
+        model.add(Dense(1024,name='fc1'))
         model.add(BatchNormalization())
         model.add(Activation('relu',name='fc1_act'))
 
-        model.add(Dense(4096,name='fc2'))
+        model.add(Dense(1024,name='fc2'))
         model.add(BatchNormalization())
         model.add(Activation('relu',name='fc2_act'))
 

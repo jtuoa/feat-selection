@@ -20,7 +20,7 @@ nfeat = None #total number of features
 def gen_kf(kf_dict):
     for n in range(len(kf_dict.keys())):
         yield kf_dict[n]
-        
+
 #add optional parameter, upload from kf_dict or not
 def hyper_selection(x,y, kf_dictSelect):
     ntrial = 10
@@ -28,45 +28,28 @@ def hyper_selection(x,y, kf_dictSelect):
     paramCoarse = {
     'MP' : (algs.MPClass(), {
                             'MP_eps': np.random.uniform(low=1e-5, high=1, size=(ntrial,))
-<<<<<<< HEAD
                             }),
-    '''
-    'Fisher' : (algs.FisherClass(), {
-                                    'Fisher_thresh': np.random.uniform(low=1e-5, high=2e5, size=(ntrial,))
-                                    })}
-    '''
-=======
-                            })}
-
-    '''
     'Fisher' : (algs.FisherClass(), {
                                     'Fisher_thresh': np.random.uniform(low=1e-5, high=2e5, size=(ntrial,))
                                     }),
->>>>>>> 7734a0b7629f646204630057f70124cc8e2ff5e0
     'L1' : (algs.L1Class(), {
                             'L1_thresh': np.random.uniform(low=1e-5, high=0.1, size=(ntrial,)),
                             'L1_regwgt': np.random.uniform(low=1e-5, high=1, size=(ntrial,))
                             })
-<<<<<<< HEAD
-     
-    }'''
-=======
     }
-    '''
->>>>>>> 7734a0b7629f646204630057f70124cc8e2ff5e0
     accuracies = {}
     for learnername in paramCoarse:
         accuracies[learnername] = np.zeros((ntrial,K))
 
     kf = KFold(n_splits=K)
-   
+
     gen = kf.split(x)
     if kf_dictSelect:
-        
+
         #load to check kf contents
-        infile = open('kfsplits_5','rb') 
-        new_dict=pickle.load(infile) 
-        infile.close() 
+        infile = open('kfsplits_5','rb')
+        new_dict=pickle.load(infile)
+        infile.close()
         gen = gen_kf(new_dict)
     else:
         kf_dict = {}
@@ -75,11 +58,11 @@ def hyper_selection(x,y, kf_dictSelect):
         outfile = open('kfsplits_5', 'wb')
         pickle.dump(kf_dict, outfile)
         outfile.close()
-    
+
     splits = {}
     for split, (train_index, test_index) in enumerate(gen):
         splits[split] = (train_index,test_index)
-    
+
     for k,item in paramCoarse.items():
         print('Selecting values for algorithm %s ..'%k)
         algorithm = item[0]
@@ -99,17 +82,20 @@ def hyper_selection(x,y, kf_dictSelect):
                 algorithm.train(trainx,trainy,testx,testy)
                 ypredict = algorithm.predict(testx)
                 cur_accuracy = float(sum(ypredict==testy))/testy.shape[0]
-                accuracies[k][i,split] = cur_accuracy
+                subfeat = (algorithm.subfeat).shape[0]
+                accuracies[k][i,split] = (cur_accuracy,subfeat)
 
     print(accuracies)
-
+    outfile = open('kfold_acc', 'wb')
+    pickle.dump(accuracies, outfile)
+    outfile.close()
 
 def std_hist(train_x):
     plt.hist(train_x.std(0))
     plt.title('Histogram of number of features in a std bin')
     plt.xlabel("Standard deviation")
     plt.ylabel("N features")
-    plt.savefig('hist.png')
+    plt.savefig('hist_1024.png')
     plt.show()
     return
 

@@ -100,7 +100,7 @@ class FisherClass(FeatureSelector):
             idx = np.asarray(list(range(Xtrain.shape[1])))
             self.subfeat = idx[mask]
             if self.subfeat.shape[0] == 0: #if empty just select the highest feature to avoid pipeline crashing
-                self.subfeat = [np.argmax(fisher_score)]
+                self.subfeat = np.asarray([np.argmax(fisher_score)])
 
 
 
@@ -141,7 +141,7 @@ class L1Class(FeatureSelector):
             idx = np.asarray(list(range(Xtrain.shape[1])))
             self.subfeat = idx[mask]
             if self.subfeat.shape[0] == 0: #if empty just select the highest feature to avoid pipeline crashing
-                self.subfeat = [np.argmax(l1_norm)]
+                self.subfeat = np.asarray([np.argmax(l1_norm)])
 
 
         #self.subfeat = range(Xtrain.shape[1])
