@@ -4,8 +4,10 @@ import os
 import algorithms as algs
 from sklearn.model_selection import KFold
 from sklearn.metrics import confusion_matrix
+from scipy import stats
 from utils import *
 import pdb
+import pickle
 
 np.random.seed(42) #set seed for reproducibility
 
@@ -15,28 +17,56 @@ parser.add_argument("--fs", type=str, default="", help="feature selection method
 args = parser.parse_args()
 nfeat = None #total number of features
 
-def hyper_selection(x,y):
-    ntrial = 50
-    K = 3
+def gen_kf(kf_dict):
+    for n in range(len(kf_dict.keys())):
+        yield kf_dict[n]
+        
+#add optional parameter, upload from kf_dict or not
+def hyper_selection(x,y, kf_dictSelect):
+    ntrial = 10
+    K = 5
     paramCoarse = {
     '''
     'MP' : (algs.MPClass(), {
                             'MP_eps': np.random.uniform(low=1e-5, high=1, size=(ntrial,))
                             }),
+    '''
     'Fisher' : (algs.FisherClass(), {
                                     'Fisher_thresh': np.random.uniform(low=1e-5, high=2e5, size=(ntrial,))
-                                    }),
+                                    })}
     '''
     'L1' : (algs.L1Class(), {
                             'L1_thresh': np.random.uniform(low=1e-5, high=0.1, size=(ntrial,)),
                             'L1_regwgt': np.random.uniform(low=1e-5, high=1, size=(ntrial,))
                             })
-    }
+     
+    }'''
     accuracies = {}
     for learnername in paramCoarse:
         accuracies[learnername] = np.zeros((ntrial,K))
 
     kf = KFold(n_splits=K)
+   
+    gen = kf.split(x)
+    if kf_dictSelect:
+        
+        #load to check kf contents
+        infile = open('kfsplits_5','rb') 
+        new_dict=pickle.load(infile) 
+        infile.close() 
+        gen = gen_kf(new_dict)
+    else:
+        kf_dict = {}
+        for split, (train_index, test_index) in enumerate(kf.split(x)):
+            kf_dict[split] = (train_index, test_index)
+        outfile = open('kfsplits_5', 'wb')
+        pickle.dump(kf_dict, outfile)
+        outfile.close()
+    
+    splits = {}
+    for split, (train_index, test_index) in enumerate(gen):
+        splits[split] = (train_index,test_index)
+    
     for k,item in paramCoarse.items():
         print('Selecting values for algorithm %s ..'%k)
         algorithm = item[0]
@@ -46,7 +76,7 @@ def hyper_selection(x,y):
             for p,values in params.items():
                 cur_param[p] = values[i]
 
-            for split, (train_index, test_index) in enumerate(kf.split(x)):
+            for split, (_,(train_index, test_index)) in enumerate(splits.items()):
                 algorithm.reset(cur_param)
                 print('%s Running with parameters %s ..'%(''*10,algorithm.getparams()))
 
@@ -82,7 +112,7 @@ def main():
     (trainx,trainy),(validx,validy) = split_data(train_x,train_y)
 
     #TODO hype selection
-    hyper_selection(train_x,train_y)
+    hyper_selection(train_x,train_y, 1) #3rd param = save kf_dict
     '''
     #TODO algorithms file --> Done
     classalgs = {'Fisher':algs.FisherClass()
@@ -103,7 +133,12 @@ def main():
     print("recall total:", recall_macro_average(cm))
     print("Accuracy:", ((sum((test_y==prediction))*1.)/test_y.shape[0])*100)
     '''
+    #TODO Evaluation metric pairt test
+    '''
+    dF = K - 1
+    for i = 0; i<accuracies
+    tstat, pstat = stats.ttest_rel(
     print('Done')
-
+    '''
 main()
 
