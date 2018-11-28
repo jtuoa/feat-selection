@@ -26,21 +26,34 @@ def hyper_selection(x,y, kf_dictSelect):
     ntrial = 10
     K = 5
     paramCoarse = {
-    '''
     'MP' : (algs.MPClass(), {
                             'MP_eps': np.random.uniform(low=1e-5, high=1, size=(ntrial,))
+<<<<<<< HEAD
                             }),
     '''
     'Fisher' : (algs.FisherClass(), {
                                     'Fisher_thresh': np.random.uniform(low=1e-5, high=2e5, size=(ntrial,))
                                     })}
     '''
+=======
+                            })}
+
+    '''
+    'Fisher' : (algs.FisherClass(), {
+                                    'Fisher_thresh': np.random.uniform(low=1e-5, high=2e5, size=(ntrial,))
+                                    }),
+>>>>>>> 7734a0b7629f646204630057f70124cc8e2ff5e0
     'L1' : (algs.L1Class(), {
                             'L1_thresh': np.random.uniform(low=1e-5, high=0.1, size=(ntrial,)),
                             'L1_regwgt': np.random.uniform(low=1e-5, high=1, size=(ntrial,))
                             })
+<<<<<<< HEAD
      
     }'''
+=======
+    }
+    '''
+>>>>>>> 7734a0b7629f646204630057f70124cc8e2ff5e0
     accuracies = {}
     for learnername in paramCoarse:
         accuracies[learnername] = np.zeros((ntrial,K))
@@ -90,7 +103,6 @@ def hyper_selection(x,y, kf_dictSelect):
 
     print(accuracies)
 
-    #TODO k-fold & random search 100 trials lr(classification),nselected (fs) ,batch size (classification)
 
 def std_hist(train_x):
     plt.hist(train_x.std(0))
