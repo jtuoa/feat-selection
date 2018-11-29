@@ -6,6 +6,10 @@ from keras.layers import Dense, Activation
 from keras.utils import np_utils
 from keras.models import Sequential
 from keras import regularizers
+from keras import backend as K
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  #disable warnings and debug info from TF
+import time
 import utils
 import pdb
 
@@ -171,21 +175,43 @@ class MPClass(FeatureSelector):
         trainy = np_utils.to_categorical(trainy, nclass)
         validy = np_utils.to_categorical(validy, nclass)
         for i in range(Xtrain.shape[1]):
-            cur_set = [a for a in all_feat if a not in I]
+            cur_set = np.asarray([a for a in all_feat if a not in I])
             acc = np.zeros_like(cur_set,dtype=np.float32)
             print('Currently selecting the %d-th feature with accuracy so far %f'%(I.shape[0],prev_acc))
+            I_idx = np.zeros_like(I)
+            I_idx = np.append(I_idx,0)
+            start = time.time()
             for j,idx in enumerate(cur_set):
-                I_idx = np.append(I,idx)
-                model = Sequential()
-                model.add(Dense(nclass, input_dim=I_idx.shape[0], activation='softmax'))
-                model.compile(optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy'])
-                history = model.fit(trainx[:,I_idx], trainy, batch_size=32, nb_epoch=20,verbose=0, validation_data=(validx[:,I_idx],validy))
+                I_idx[-1] = idx
+                history = self.train_model(nclass,trainx[:,I_idx],trainy,validx[:,I_idx],validy)
                 acc[j] = max(history.history['val_acc'])
-            new_feat = np.argmax(acc)
+                print('Feature %d with accuracy %f'%(cur_set[j],acc[j]))
+                if j and j % 20 == 0: #as creating multiple models in a row causes slow down each iteration
+                    K.clear_session() #https://github.com/keras-team/keras/issues/3579#issuecomment-242492693
+            acc_sorted,idx = zip(*sorted(zip(acc,range(acc.shape[0])),reverse=True))
+            new_feat = list(idx[:100])
             I = np.append(I,cur_set[new_feat])
-            if (epsilon and abs(acc[new_feat] - prev_acc) < epsilon) or I.shape[0] == self.params['nselected']:
+            history = self.train_model(nclass,trainx[:,I],trainy,validx[:,I],validy,20)
+            cur_acc = max(history.history['val_acc'])
+            print('Current accuracy with %d features is %f '%(I.shape[0], cur_acc))
+            end = time.time()
+            print('This took %f seconds'%((end-start)))
+            if (epsilon and abs(cur_acc - prev_acc) < epsilon) or (epsilon == 0.0 and I.shape[0] == self.params['nselected']):
                 break;
-            prev_acc = acc[new_feat]
+            prev_acc = cur_acc
 
         self.subfeat = I
+
+    def train_model(self,nclass,xtrain,ytrain,xvalid,yvalid,epoch=1):
+
+        #To generate the same weights initialization for all methods, keras uses numpy and tf as backend so we need to set tf's seed as well
+        from tensorflow import set_random_seed
+        np.random.seed(2)
+        set_random_seed(2)
+
+        model = Sequential()
+        model.add(Dense(nclass, input_dim=xtrain.shape[1], activation='softmax'))
+        model.compile(optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy'])
+        history = model.fit(xtrain, ytrain, batch_size=128, nb_epoch=epoch,verbose=0, validation_data=(xvalid,yvalid))
+        return history
 
