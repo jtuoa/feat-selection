@@ -35,11 +35,16 @@ def hyper_selection(x,y, kf_dictSelect):
     '''
 
     paramCoarse = {
+    'Fisher' : (algs.FisherClass(), {
+                                    'Fisher_thresh': np.random.uniform(low=0.2, high=1, size=(ntrial,))
+                                    })
+    }
+    '''
     'L1' : (algs.L1Class(), {
                             'L1_thresh': np.random.uniform(low=1e-5, high=0.1, size=(ntrial,)),
                             'L1_regwgt': np.random.uniform(low=1e-5, high=1, size=(ntrial,))
                             })
-    }
+    }'''
     accuracies = {}
     for learnername in paramCoarse:
         accuracies[learnername] = np.zeros((ntrial,K,2),dtype = np.float32)
@@ -90,8 +95,8 @@ def hyper_selection(x,y, kf_dictSelect):
                 accuracies[k][i,split][1] = subfeat
 
     print(accuracies)
-    outfile = open('kfold_acc', 'wb')
-    pickle.dump(accuracies, outfile)
+    outfile = open('kfold_acc_fisher', 'wb')
+    pickle.dump((paramCoarse['Fisher'][1], accuracies), outfile)
     outfile.close()
 
 def std_hist(train_x):
@@ -138,8 +143,12 @@ def main():
     #TODO Evaluation metric pairt test
     '''
     dF = K - 1
-    for i = 0; i<accuracies
-    tstat, pstat = stats.ttest_rel(
+    for learnername in paramCoarse: #mean for each trial
+        for t in range(ntrial):
+            avg_acc[learnername][t] = np.mean(accuracies[learnername][t],0)[0]       
+        
+    tstat, pstat = stats.ttest_rel(avg_acc['Fisher'], avg_acc['MP'])
+    tstats, pstat = stats.ttest_rel(avg_acc[BEST], avg_acc['L1'])
     print('Done')
     '''
 main()
