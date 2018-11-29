@@ -87,6 +87,7 @@ class FisherClass(FeatureSelector):
         """ select subfeatures using the traindata """
         nselected = self.params['nselected']
         fisher_score,p_value = chi2(Xtrain, ytrain)
+        fisher_score = fisher_score/max(abs(fisher_score)) #normalize score
         NaNs = fisher_score!=fisher_score
         print("Number of nans %d: "%sum(NaNs))
         fisher_score[NaNs] = 0 #zero-out nans
