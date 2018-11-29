@@ -2,10 +2,13 @@ from __future__ import division  # floating point division
 import numpy as np
 from sklearn.feature_selection import chi2
 import keras
+from keras import backend as K
 from keras.layers import Dense, Activation
 from keras.utils import np_utils
 from keras.models import Sequential
 from keras import regularizers
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  #disable warnings and debug info from TF
 import utils
 import pdb
 
@@ -123,6 +126,10 @@ class L1Class(FeatureSelector):
         nclass = len(np.unique(ytrain))
         ytrain = np_utils.to_categorical(ytrain, nclass)
 
+        from tensorflow import set_random_seed
+        np.random.seed(42)
+        set_random_seed(2)
+
         model = Sequential()
         model.add(Dense(nclass, input_dim=Xtrain.shape[1], activation='softmax', kernel_regularizer=regularizers.l1(self.params['L1_regwgt'])))
         model.compile(optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy'])
@@ -142,6 +149,7 @@ class L1Class(FeatureSelector):
             self.subfeat = idx[mask]
             if self.subfeat.shape[0] == 0: #if empty just select the highest feature to avoid pipeline crashing
                 self.subfeat = np.asarray([np.argmax(l1_norm)])
+        K.clear_session()
 
 
         #self.subfeat = range(Xtrain.shape[1])
