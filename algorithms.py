@@ -33,6 +33,9 @@ class FeatureSelector:
 
     def getparams(self):
         return self.params
+        
+    def setoneparam(self,key,val):
+        self.params[key] = val
 
     def select(self, Xtrain, ytrain):
         """ select subfeatures using the traindata """
@@ -55,7 +58,7 @@ class FeatureSelector:
         self.model = Sequential()
         self.model.add(Dense(nclass, input_dim=x.shape[1], activation='softmax'))
         self.model.compile(optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy'])
-        self.history = self.model.fit(x, y, batch_size=self.params['nbatch'], nb_epoch=20,verbose=1,validation_data=(xvalid,yvalid))
+        self.history = self.model.fit(x, y, batch_size=self.params['nbatch'], nb_epoch=20,verbose=2,validation_data=(xvalid,yvalid))
 
     def predict(self, Xtest):
         ytest= self.model.predict(Xtest[:,self.subfeat],50)
@@ -128,22 +131,19 @@ class L1Class(FeatureSelector):
         nclass = len(np.unique(ytrain))
         ytrain = np_utils.to_categorical(ytrain, nclass)
 
-        from tensorflow import set_random_seed
-        np.random.seed(42)
-        set_random_seed(2)
-
         model = Sequential()
         model.add(Dense(nclass, input_dim=Xtrain.shape[1], activation='softmax', kernel_regularizer=regularizers.l1(self.params['L1_regwgt'])))
         model.compile(optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy'])
         history = model.fit(Xtrain, ytrain, batch_size=self.params['nbatch'], nb_epoch=20,verbose=0)
         layer = model.layers[-1]
         weights = layer.get_weights()[0] #filter weights only (e.g weights[0]) not bias (e.g weights[1])
-
+        
         thresh = self.params['L1_thresh']
         if abs(thresh - 0.0) < 1e-8:
             nselected = self.params['nselected']
-            w,idx = zip(*sorted(zip(abs(weights),range(Xtrain.shape[1])),reverse=True))
-            self.subfeat = idx[:nselected]
+            feat_weights = np.sum(abs(weights),1)
+            w,idx = zip(*sorted(zip(feat_weights,range(Xtrain.shape[1])),reverse=True))
+            self.subfeat = np.asarray(idx[:nselected])
         else:
             l1_norm = np.sum(np.abs(weights),1)
             mask = l1_norm >= thresh
@@ -151,7 +151,6 @@ class L1Class(FeatureSelector):
             self.subfeat = idx[mask]
             if self.subfeat.shape[0] == 0: #if empty just select the highest feature to avoid pipeline crashing
                 self.subfeat = np.asarray([np.argmax(l1_norm)])
-        K.clear_session()
 
 
         #self.subfeat = range(Xtrain.shape[1])
