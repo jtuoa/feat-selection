@@ -128,6 +128,10 @@ class L1Class(FeatureSelector):
         nclass = len(np.unique(ytrain))
         ytrain = np_utils.to_categorical(ytrain, nclass)
 
+        from tensorflow import set_random_seed
+        np.random.seed(42)
+        set_random_seed(2)
+
         model = Sequential()
         model.add(Dense(nclass, input_dim=Xtrain.shape[1], activation='softmax', kernel_regularizer=regularizers.l1(self.params['L1_regwgt'])))
         model.compile(optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy'])
@@ -147,6 +151,7 @@ class L1Class(FeatureSelector):
             self.subfeat = idx[mask]
             if self.subfeat.shape[0] == 0: #if empty just select the highest feature to avoid pipeline crashing
                 self.subfeat = np.asarray([np.argmax(l1_norm)])
+        K.clear_session()
 
 
         #self.subfeat = range(Xtrain.shape[1])
