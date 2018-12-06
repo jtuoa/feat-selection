@@ -5,11 +5,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 def split_data(x,y,split=0.8):
-    trainsz = round(x.shape[0]*split)
+    trainsz = int(round(x.shape[0]*split))
     perm = np.random.permutation(x.shape[0])
     x = x[perm,...]
     y = y[perm]
-    return (x[:trainsz],y[:trainsz]),(x[trainsz:],y[trainsz:])
+    return (x[:trainsz,...],y[:trainsz,...]),(x[trainsz:,...],y[trainsz:,...])
 
 #precision/recall functions from https://www.python-course.eu/confusion_matrix.php
 def precision(label, confusion_matrix):
@@ -40,11 +40,11 @@ def plot_cm(cm,lbls):
     sns.heatmap(cm,annot=True,square=True,cbar=False,fmt="d",cmap="YlOrRd_r")
     plt.xticks(np.arange(len(lbls)),lbls)
     plt.yticks(np.arange(len(lbls)),lbls)
-    plt.title('All features')#Fisher 1000 features')
+    plt.title('Matching Pursuit 200 features')
     plt.xlabel("predicted label")
     plt.ylabel("true label")
     plt.savefig('foo.png', bbox_inches='tight')
-    plt.show()
+    #plt.show()
 
 def load_data(filename):
     data = np.load(filename).item()

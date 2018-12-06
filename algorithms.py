@@ -7,11 +7,16 @@ from keras.utils import np_utils
 from keras.models import Sequential
 from keras import regularizers
 from keras import backend as K
+import tensorflow as tf
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  #disable warnings and debug info from TF
 import time
 import utils
 import pdb
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True  # dynamically grow the memory used on the GPU
+sess = tf.Session(config=config)
+K.set_session(sess)  # set this TensorFlow session as the default session for Keras
 
 class FeatureSelector:
     def __init__( self, parameters={} ):
@@ -33,7 +38,10 @@ class FeatureSelector:
 
     def getparams(self):
         return self.params
-        
+
+    def setoneparam(self,key,val):
+        self.params[key] = val
+
     def setoneparam(self,key,val):
         self.params[key] = val
 
@@ -111,7 +119,6 @@ class FisherClass(FeatureSelector):
                 self.subfeat = np.asarray([np.argmax(fisher_score)])
 
 
-
 class L1Class(FeatureSelector):
     """
     L1
@@ -137,7 +144,7 @@ class L1Class(FeatureSelector):
         history = model.fit(Xtrain, ytrain, batch_size=self.params['nbatch'], nb_epoch=20,verbose=0)
         layer = model.layers[-1]
         weights = layer.get_weights()[0] #filter weights only (e.g weights[0]) not bias (e.g weights[1])
-        
+
         thresh = self.params['L1_thresh']
         if abs(thresh - 0.0) < 1e-8:
             nselected = self.params['nselected']
@@ -188,7 +195,7 @@ class MPClass(FeatureSelector):
             start = time.time()
             for j,idx in enumerate(cur_set):
                 I_idx[-1] = idx
-                history = self.train_model(nclass,trainx[:,I_idx],trainy,validx[:,I_idx],validy)
+                history = self.train_model(nclass,trainx[:,I_idx],trainy,validx[:,I_idx],validy,5)
                 acc[j] = max(history.history['val_acc'])
                 print('Feature %d with accuracy %f'%(cur_set[j],acc[j]))
                 if j and j % 20 == 0: #as creating multiple models in a row causes slow down each iteration
@@ -201,22 +208,22 @@ class MPClass(FeatureSelector):
             print('Current accuracy with %d features is %f '%(I.shape[0], cur_acc))
             end = time.time()
             print('This took %f seconds'%((end-start)))
-            if (epsilon and abs(cur_acc - prev_acc) < epsilon) or (epsilon == 0.0 and I.shape[0] == self.params['nselected']):
+            if (epsilon and abs(cur_acc - prev_acc) < epsilon) or (epsilon == 0.0 and I.shape[0] >= self.params['nselected']):
                 break;
             prev_acc = cur_acc
 
-        self.subfeat = I
+        self.subfeat = I if not epsilon == 0.0 else I[:self.params['nselected']]
 
     def train_model(self,nclass,xtrain,ytrain,xvalid,yvalid,epoch=1):
 
         #To generate the same weights initialization for all methods, keras uses numpy and tf as backend so we need to set tf's seed as well
         from tensorflow import set_random_seed
-        np.random.seed(2)
+        np.random.seed(42)
         set_random_seed(2)
 
         model = Sequential()
         model.add(Dense(nclass, input_dim=xtrain.shape[1], activation='softmax'))
         model.compile(optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy'])
-        history = model.fit(xtrain, ytrain, batch_size=128, nb_epoch=epoch,verbose=0, validation_data=(xvalid,yvalid))
+        history = model.fit(xtrain, ytrain, batch_size=32, nb_epoch=epoch,verbose=0, validation_data=(xvalid,yvalid))
         return history
 
