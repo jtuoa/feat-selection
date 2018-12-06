@@ -4,7 +4,7 @@ Mini-project CMPUT 566
 
 ## Installation
 ```bash
-virtuenv -p python3 .env
+virtualenv -p python3 .env
 source .env/bin/activate
 ```
 
@@ -23,5 +23,4 @@ python cifarvgg.py --mode extract --dataset cifar10 --chkpnt cifar10vgg/model.hd
 ## Feature selection
 ```bash
 python main_fs.py --path cifar10vgg
-python 
 ```
