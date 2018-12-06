@@ -207,6 +207,45 @@ def main():
     avg_var = np.var(avg_run)
     '''
 
+    #TODO Evaluation metric pairt test
+    '''
+    avg_acc_fisher = np.array([0.9966, 0.998, 0.9972, 0.997, 0.997, 0.9966, 0.9966, 0.997, 0.998, 0.997])
+    avg_acc_MP = np.array([0.9964,0.997,0.9966,0.9964,0.9964,0.9958,0.9966,0.9962,0.997,0.9958])
+    avg_acc_L1 = np.array([0.9972,0.9972,0.9972,0.9956,0.9968,0.9958,0.9978,0.9964,0.997 ,0.9964])
+    import matplotlib.mlab as mlab
+    mean = avg_acc_fisher.mean()
+    sigma = avg_acc_fisher.std()
+    x = np.linspace(-3 * sigma + mean, 3 * sigma + mean, 100)
+    plt.plot(x,mlab.normpdf(x, mean, sigma),label='Fisher')
+
+    mean = avg_acc_L1.mean()
+    sigma = avg_acc_L1.std()
+    x = np.linspace(-3 * sigma + mean, 3 * sigma + mean, 100)
+    plt.plot(x,mlab.normpdf(x, mean, sigma),label='L1')
+
+    mean = avg_acc_MP.mean()
+    sigma = avg_acc_MP.std()
+    x = np.linspace(-3 * sigma + mean, 3 * sigma + mean, 100)
+    plt.plot(x,mlab.normpdf(x, mean, sigma),label='MP')
+
+    plt.xlabel('Accuracy',fontsize='large')
+    plt.yticks([])
+
+    plt.legend(fontsize='large')
+    plt.savefig('ptest.png')
+    plt.show()
+    '''
+    '''
+    #dF = K - 1
+    tstat, pstat = stats.ttest_rel(avg_acc_fisher, avg_acc_MP)
+    print(tstat,'  ', pstat)
+    tstat, pstat = stats.ttest_rel(avg_acc_L1, avg_acc_MP)
+    print(tstat,'  ', pstat)
+    res = stats.f_oneway(avg_acc_fisher,avg_acc_L1,avg_acc_MP)
+    #tstats, pstat = stats.ttest_rel(avg_acc[BEST], avg_acc_MP)
+    print('Done')
+    '''
+
     #TODO redundancy test
     '''
     classalgs = {'L1': algs.L1Class({'L1_thresh': 0., 'L1_regwgt': 0.70, 'nselected': 1024}),#0.0425712869663748, 0.7046688408267813
@@ -222,6 +261,49 @@ def main():
     '''
 
     #TODO nselected test
+    '''
+    final_res = {710: np.array([89.89, 89.96, 89.81]), 10: np.array([86.17, 87.22, 65.07]), 910: np.array([89.9 , 89.87, 89.86]), 210: np.array([89.88, 89.63, 89.66]), 410: np.array([89.93, 89.84, 89.72]), 610: np.array([89.9 , 89.95, 89.82]), 810: np.array([89.89, 89.87, 89.81]), 110: np.array([89.86, 89.23, 89.32]), 1010: np.array([89.91, 89.87, 89.9 ]), 310: np.array([89.95, 89.93, 89.66]), 510: np.array([89.9 , 89.85, 89.83])}
+    final_res = {1: np.array([32.22, 32.22, 10.  ]), 71: np.array([89.73, 89.64, 89.24]), 41: np.array([89.34, 89.3, 89.17]), 11: np.array([86.17, 87.22, 65.07]), 81: np.array([89.68, 89.7, 89.38]), 51: np.array([89.55, 89.64, 88.82]), 21: np.array([88.29, 88.74, 83.86]), 91: np.array([89.79, 89.8, 89.47]), 61: np.array([89.63, 89.64, 89.21]), 31: np.array([88.92, 89.28 , 87.24])}
+    N = 3
+    nrun = len(sorted(final_res))
+    ind = np.zeros(nrun)  # the x locations for the groups
+    width = 20       # the width of the bars
+    #width = 3       # the width of the bars
+
+    fig = plt.figure()#figsize=(5, 6))
+    ax = fig.add_subplot(111)
+
+    yvals = np.zeros((N,nrun))
+    for r, k in enumerate(sorted(final_res)):
+        ind[r] = k
+        for i in range(N):
+            yvals[i][r] = final_res[k][i]
+
+    rects1 = ax.bar(ind, yvals[0,:], width, color='r')
+    rects2 = ax.bar(ind+width, yvals[1,:], width, color='g')
+    rects3 = ax.bar(ind+width*2, yvals[2,:], width, color='b')
+
+    ax.tick_params(labelsize='large')
+    ax.set_xlabel('N Features Selected',fontsize='large')
+    ax.set_ylabel('Accuracy',fontsize='large')
+    ax.set_xticks(ind+width)
+    ax.set_xticklabels(ind.astype(np.int))#('2011-Jan-4', '2011-Jan-5', '2011-Jan-6') )
+    ax.set_xlim(right=1200)
+    ax.legend( (rects1[0], rects2[0], rects3[0]), ('Fisher', 'Matching Pursuit', 'L1'),fontsize='large')
+
+    def autolabel(rects):
+        for rect in rects:
+            h = rect.get_height()
+            ax.text(rect.get_x()+rect.get_width()/2., 1.05*h, '%d'%int(h),
+                    ha='center', va='bottom')
+
+    #autolabel(rects1)
+    #autolabel(rects2)
+    #autolabel(rects3)
+    plt.savefig('nselected.png')
+    plt.show()
+    '''
+
     '''
     classalgs = {
     'L1': algs.L1Class({'L1_thresh': 0., 'L1_regwgt': 0.70, 'nselected': 1024}),#0.0425712869663748, 0.7046688408267813
@@ -244,11 +326,11 @@ def main():
     '''
 
     #TODO tsne
-    '''
     #alg = algs.L1Class({'L1_thresh':0.042, 'L1_regwgt':0.7})
-    alg = algs.FisherClass({'Fisher_thresh': 0.})
-    alg.select(train_x,train_y)
-    selected = alg.subfeat
+    #alg = algs.FisherClass({'Fisher_thresh': 0.})
+    #alg.select(train_x,train_y)
+    '''
+    selected = np.asarray(range(1024))#alg.subfeat
     tsne = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=300)
     X_2d = tsne.fit_transform(train_x[:,selected])
     plt.figure(figsize=(6, 5))
@@ -257,8 +339,10 @@ def main():
         plt.scatter(X_2d[train_y == i, 0], X_2d[train_y == i, 1], c=c, label=label)
     plt.legend()
     plt.show()
-    '''
 
+    plt.savefig('tsne_1024.png')
+    #plt.show()
+    '''
 
 main()
 

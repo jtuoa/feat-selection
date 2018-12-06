@@ -175,7 +175,10 @@ class cifarvgg:
         lr_decay = 1e-6
         lr_drop = 20
         # The data, shuffled and split between train and test sets:
-        (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+        if args.dataset == "cifar10":
+            (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+        else:
+            (x_train, y_train), (x_test, y_test) = cifar100.load_data()
         x_train = x_train.astype('float32')
         #TODO add validation split
         x_test = x_test.astype('float32')
@@ -265,11 +268,12 @@ def main():
     y_train = keras.utils.to_categorical(y_train, nclass)
     y_test = keras.utils.to_categorical(y_test, nclass)
     if args.mode == "train":
-        model = cifarvgg()
+        model = cifarvgg(num_classes=nclass)
     elif args.mode == "test":
-        model = cifarvgg(train=False)
+        model = cifarvgg(train=False,num_classes=nclass)
         predicted_x = model.predict(x_test)
         acc = np.argmax(predicted_x,1)==np.argmax(y_test,1)
+        '''
         test_y = y_test.argmax(1)
         predicted_x = predicted_x.argmax(1)
         cm = confusion_matrix(test_y,predicted_x)
@@ -285,12 +289,13 @@ def main():
         print("recall total:", recall_macro_average(cm))
         print("Accuracy:", ((sum((test_y==predicted_x))*1.)/test_y.shape[0])*100)
         print('Done')
+        '''
 
 
         acc = sum(acc)/len(acc)
         print("the validation accuracy is: ",acc)
     else:# extract features
-        model = cifarvgg(train=False)
+        model = cifarvgg(train=False,num_classes=nclass)
         out_dir = os.path.join(*args.chkpnt.split('/')[:-1])
 
         features_train = model.extract(x_train)
